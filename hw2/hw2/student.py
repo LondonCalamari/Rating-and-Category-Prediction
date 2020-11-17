@@ -197,7 +197,7 @@ class network(tnn.Module):
         super(network, self).__init__()
 
         inputSize = wordVectors.dim    
-        hiddenSize = 100
+        hiddenSize = 200
         self.lstmNumLayers = 1
         hiddenLayerOutputSize = 10
 
