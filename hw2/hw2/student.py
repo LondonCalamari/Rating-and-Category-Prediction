@@ -25,8 +25,7 @@ import torch.optim as toptim
 from torchtext.vocab import GloVe
 import numpy as np
 import sklearn
-import nltk
-from nltk.corpus import stopwords 
+import string
 
 from config import device
 
@@ -40,6 +39,7 @@ def tokenise(sample):
     """
 
     processed = sample.split()
+    #processed = word_tokenize(sample)
 
     return processed
 
@@ -47,9 +47,28 @@ def preprocessing(sample):
     """
     Called after tokenising but before numericalising.
     """
+    '''
+    Our preprocessing steps involve cleaning the input text by:
+        - removing punctuation
+        - removing non-alphabetic characters
+        - normalizing case
 
+    This is important since removing variations in text such 
+    as case and punctuation will no longer affect the encoding 
+    of words into dense vectors.
+    '''
 
-    return sample
+    # Remove punctuation
+    punctuation = str.maketrans('','', string.punctuation)
+    words = [w.translate(punctuation) for w in sample]
+
+    # Remove non-alphabetic 
+    words = [w for w in words if w.isalpha()]
+    
+    # Lower case everything
+    words = [w.lower() for w in words]
+
+    return words
 
 def postprocessing(batch, vocab):
     """
@@ -138,11 +157,10 @@ def customStopwords():
     
     return words
 
-
 #nltk.download('stopwords')
 #stopWords = set(stopwords.words('english'))
 stopWords = set(customStopwords())
-wordVectors = GloVe(name='6B', dim=50)
+wordVectors = GloVe(name='6B', dim=300)
 
 ################################################################################
 ####### The following determines the processing of label data (ratings) ########
@@ -174,12 +192,13 @@ class network(tnn.Module):
 
     def __init__(self):
         super(network, self).__init__()
-        
-        hiddenSize = 110
+
+        inputSize = wordVectors.dim    
+        hiddenSize = 100
         self.lstmNumLayers = 1
         hiddenLayerOutputSize = 10
 
-        self.lstm = tnn.LSTM(input_size = 50, hidden_size = hiddenSize, num_layers = self.lstmNumLayers, batch_first=True)
+        self.lstm = tnn.LSTM(input_size = inputSize, hidden_size = hiddenSize, num_layers = self.lstmNumLayers, batch_first=True)
 
         self.hiddenLayer = tnn.Sequential(
             tnn.Linear(hiddenSize*self.lstmNumLayers, 50),
@@ -215,6 +234,12 @@ class loss(tnn.Module):
     Class for creating the loss function.  The labels and outputs from your
     network will be passed to the forward method during training.
     """
+    '''
+    For the category, Cross-Entropy Loss is used. This loss function calculates 
+    the differences in two probability distrubtions for the set of 5 unique 
+    categories. Similarly for ratings, a Binary Cross-Entropy Loss is used to 
+    determine if a review is positive or negative.
+    '''
 
     def __init__(self):
         super(loss, self).__init__()
@@ -234,7 +259,26 @@ lossFunc = loss()
 ################## The following determines training options ###################
 ################################################################################
 
-trainValSplit = 0.8
+'''
+The Adam optimisation algorithm is used as it is generally known to work 
+effectively for natural language processing. Rather than using SGD 
+(Stochastic Gradient Descent) which has a single learning rate for all 
+weight updates, Adam calculates learning rate for every parameter.
+'''
+
+trainValSplit = 0.85
 batchSize = 32
-epochs = 10
-optimiser = toptim.SGD(net.parameters(), lr=0.1, momentum=0.5)
+epochs = 12
+#optimiser = toptim.SGD(net.parameters(), lr=0.15, momentum=0.5)
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0015) # 79% acc
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0018) # 79.8%
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0014) # 79.66%
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0013) # 79.59%
+#optimiser = toptim.Adam(net.parameters(), lr = 0.002) # 79.67%
+# 10 epochs ^^
+#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 80.46% 
+# 30 epochs ^^
+#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 200wv # 79.66
+#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 100wv # 78.03
+optimiser = toptim.Adam(net.parameters(), lr = 0.0006) # 
+
