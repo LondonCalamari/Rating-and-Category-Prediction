@@ -23,7 +23,7 @@ You may only use GloVe 6B word vectors as found in the torchtext package.
 import torch.nn as tnn
 import torch.optim as toptim
 from torchtext.vocab import GloVe
-import numpy as np
+#import numpy as np
 import sklearn
 import string
 
