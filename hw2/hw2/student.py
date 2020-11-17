@@ -19,7 +19,7 @@ You may change this variable in the config.py file.
 You may only use GloVe 6B word vectors as found in the torchtext package.
 """
 
-# import torch
+#import torch
 import torch.nn as tnn
 import torch.optim as toptim
 from torchtext.vocab import GloVe
@@ -28,6 +28,9 @@ import sklearn
 import string
 
 from config import device
+
+#print(torch.__version__)
+#print(torchtext.__version__)
 
 ################################################################################
 ##### The following determines the processing of input data (review text) ######
@@ -266,7 +269,7 @@ effectively for natural language processing. Rather than using SGD
 weight updates, Adam calculates learning rate for every parameter.
 '''
 
-trainValSplit = 0.85
+trainValSplit = 0.80
 batchSize = 32
 epochs = 12
 #optimiser = toptim.SGD(net.parameters(), lr=0.15, momentum=0.5)
@@ -278,7 +281,9 @@ epochs = 12
 # 10 epochs ^^
 #optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 80.46% 
 # 30 epochs ^^
-#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 200wv # 79.66
-#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 100wv # 78.03
-optimiser = toptim.Adam(net.parameters(), lr = 0.0006) # 
+#optimiser = toptim.Adam(net.parameters(), lr = 0.001)  # 200wv # 79.66
+#optimiser = toptim.Adam(net.parameters(), lr = 0.001)  # 100wv # 78.03
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0006) # 300wv # 82+   # 12 epochs
+#optimiser = toptim.Adam(net.parameters(), lr = 0.0005) # 300wv # 83.84 # 12 epochs 
+optimiser = toptim.Adam(net.parameters(), lr = 0.0009)  # 300wv # 84.10 # 12 epochs
 
