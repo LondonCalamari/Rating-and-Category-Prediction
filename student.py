@@ -4,19 +4,8 @@ student.py
 
 UNSW COMP9444 Neural Networks and Deep Learning
 
-You may modify this file however you wish, including creating additional
-variables, functions, classes, etc., so long as your code runs with the
-hw2main.py file unmodified, and you are only using the approved packages.
-
-You have been given some default values for the variables stopWords,
-wordVectors, trainValSplit, batchSize, epochs, and optimiser, as well as a basic
-tokenise function.  You are encouraged to modify these to improve the
-performance of your model.
-
-The variable device may be used to refer to the CPU/GPU being used by PyTorch.
-You may change this variable in the config.py file.
-
-You may only use GloVe 6B word vectors as found in the torchtext package.
+z5160715 - Oscar Moses
+z5122528 - Lyndon Chang
 """
 
 import torch
@@ -30,7 +19,7 @@ import string
 from config import device
 
 
-"""
+'''
 This code includes the input processing, neural network and loss function of the 
 sentiment analysis program. The input processing functions are used to simplify the 
 review data before it reaches the network by removing punctuation and any 
@@ -55,13 +44,11 @@ networks. We experimented with a convolutional network; the accuracy for our con
 was similar but more computationally expensive, so we defaulted back to an LSTM set up. 
 We also had between 2 and 3 hidden layers in our model for a while, but found that the 
 accuracy was unaffected when they were removed, so we deemed them unnecessary. We decided 
-to switch the optimiser from SGD to Adam because we learnt that Adam was a widely used optimiser 
-for natural language processing. After changing to an Adam optimiser, it was easier to experiment 
-as we no longer had to modify the momentum parameter manually. We also found that our 
-configuration was most accurate with a very small learning rate.
-"""
-
-
+to switch the optimiser from SGD to Adam because we learnt that Adam was a widely used 
+optimiser for natural language processing. After changing to an Adam optimiser, it was 
+easier to experiment as we no longer had to modify the momentum parameter manually. We 
+also found that our configuration was most accurate with a very small learning rate.
+'''
 
 
 ################################################################################
@@ -69,18 +56,11 @@ configuration was most accurate with a very small learning rate.
 ################################################################################
 
 def tokenise(sample):
-    """
-    Called before any processing of the text has occurred.
-    """
-
     processed = sample.split()
 
     return processed
 
 def preprocessing(sample):
-    """
-    Called after tokenising but before numericalising.
-    """
     '''
     Our preprocessing steps involve cleaning the input text by:
         - removing punctuation
@@ -105,12 +85,11 @@ def preprocessing(sample):
     return words
 
 def postprocessing(batch, vocab):
-    """
-    Called after numericalising but before vectorising.
-    """
-
     return batch
 
+'''
+This is a hardcoded list of NLTK's English stopwords --> found at https://gist.github.com/sebleier/554280
+'''
 def customStopwords():
     words = ["a","about","above","after","again","against","ain","all","am","an","and",
     "any","are","aren","aren't","as","at","be","because","been","before","being",
@@ -191,8 +170,6 @@ def customStopwords():
     
     return words
 
-#nltk.download('stopwords')
-#stopWords = set(stopwords.words('english'))
 stopWords = set(customStopwords())
 wordVectors = GloVe(name='6B', dim=300)
 
@@ -200,15 +177,10 @@ wordVectors = GloVe(name='6B', dim=300)
 ####### The following determines the processing of label data (ratings) ########
 ################################################################################
 
+'''
+Rounds the rating value to the nearest integer and chooses the most probable category as an integer
+'''
 def convertNetOutput(ratingOutput, categoryOutput):
-    """
-    Your model will be assessed on the predictions it makes, which must be in
-    the same format as the dataset ratings and business categories.  The
-    predictions must be of type LongTensor, taking the values 0 or 1 for the
-    rating, and 0, 1, 2, 3, or 4 for the business category.  If your network
-    outputs a different representation convert the output here.
-    """
-
     return ratingOutput.round().long(), categoryOutput.argmax(axis=1).long()
 
 ################################################################################
@@ -229,12 +201,11 @@ class network(tnn.Module):
 
         inputSize = wordVectors.dim
         hiddenSize = 100
-        self.lstmNumLayers = 3
-        hiddenLayerOutputSize = 10
+        lstmNumLayers = 3
 
         self.lstm = tnn.LSTM(input_size = inputSize,
                                 hidden_size = hiddenSize,
-                                num_layers = self.lstmNumLayers,
+                                num_layers = lstmNumLayers,
                                 bidirectional = True,
                                 dropout=0.4,
                                 batch_first=True)
@@ -242,30 +213,27 @@ class network(tnn.Module):
         self.ratingOutputLayer = tnn.Sequential(
             tnn.Linear(2*hiddenSize, 1),
             tnn.Sigmoid()
-        
         )
+
         self.categoryOutputLayer = tnn.Sequential(
             tnn.Linear(2*hiddenSize, 5),
             tnn.Softmax(dim=1)
-          
         )
 
     def forward(self, input, length):
-        batchSize = len(length)
-        output, state = self.lstm(input)
-        finalHiddenState = state[0]
-        bidirectionalHiddenState = torch.cat(
-            (finalHiddenState[-2,:,:], finalHiddenState[-1,:,:]), dim = 1).squeeze()
+        # Feeding the batch through the LSTM layer
+        output, (hiddenState, cellState) = self.lstm(input)
         
+        # Concatenating the regular and reverse hidden states of the last LSTM layer
+        bidirectionalHiddenState = torch.cat(
+            (hiddenState[-2,:,:], hiddenState[-1,:,:]), dim = 1).squeeze()
+        
+        # Feeding the bidirectional hiddenstate through the output layer
         rating = self.ratingOutputLayer(bidirectionalHiddenState).squeeze()
         category = self.categoryOutputLayer(bidirectionalHiddenState)
         return rating, category
 
 class loss(tnn.Module):
-    """
-    Class for creating the loss function.  The labels and outputs from your
-    network will be passed to the forward method during training.
-    """
     '''
     For the category, Cross-Entropy Loss is used. This loss function calculates 
     the differences in two probability distrubtions for the set of 5 unique 
@@ -298,19 +266,8 @@ effectively for natural language processing. Rather than using SGD
 weight updates, Adam calculates learning rate for every parameter.
 '''
 
-trainValSplit = 0.85
+trainValSplit = 0.8
 batchSize = 32
 epochs = 15
-#optimiser = toptim.SGD(net.parameters(), lr=0.15, momentum=0.5)
-#optimiser = toptim.Adam(net.parameters(), lr = 0.0015) # 79% acc
-#optimiser = toptim.Adam(net.parameters(), lr = 0.0018) # 79.8%
-#optimiser = toptim.Adam(net.parameters(), lr = 0.0014) # 79.66%
-#optimiser = toptim.Adam(net.parameters(), lr = 0.0013) # 79.59%
-#optimiser = toptim.Adam(net.parameters(), lr = 0.002) # 79.67%
-# 10 epochs ^^
-#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 80.46% 
-# 30 epochs ^^
-#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 200wv # 79.66
-#optimiser = toptim.Adam(net.parameters(), lr = 0.001) # 100wv # 78.03
-optimiser = toptim.Adam(net.parameters(), lr = 0.0006) # 
+optimiser = toptim.Adam(net.parameters(), lr = 0.0006) 
 
